@@ -96,6 +96,76 @@ DEFINE_SWITCH_ARRAY(MHL, mhlswitches);
 #define	LBITS	"\020\01NOCOMPONENT\02UPPERCASE\03CENTER\04CLEARTEXT\05EXTRA\06HDROUTPUT\07CLEARSCR\010LEFTADJUST\011COMPRESS\012ADDRFMT\013BELL\014DATEFMT\015FORMAT\016INIT\017RTRIM\021SPLIT\022NONEWLINE\023NOWRAP\024FMTFILTER"
 #define	GFLAGS	(NOCOMPONENT | UPPERCASE | CENTER | LEFTADJUST | COMPRESS | SPLIT | NOWRAP)
 
+/* from mhn */
+
+static int     content_encoding;         /* internal form */
+#define CE_UNKNOWN      0x00
+#define CE_BASE64       0x01
+#define CE_QUOTED       0x02
+#define CE_8BIT         0x03
+#define CE_7BIT         0x04
+#define CE_BINARY       0x05
+#define CE_EXTENSION    0x06
+#define CE_EXTERNAL     0x07    /* for external-body */
+
+#define ENCODING_FIELD  "Content-Transfer-Encoding"
+    
+struct str2init {
+    char   *mhnsi_key;
+    int     mhnsi_value;
+};  
+    
+static struct str2init str2ces[] = {
+    {"base64",           CE_BASE64},
+    {"quoted-printable", CE_QUOTED},
+    {"8bit",             CE_8BIT},
+    {"7bit",             CE_7BIT},
+    {"binary",           CE_BINARY},      
+
+    {NULL,               CE_EXTENSION},
+    {NULL,               CE_UNKNOWN},
+};  
+
+#define CS_DEFAULT       0
+#define CS_JIS7          1
+#define CS_JEUC          2
+#define CS_SJIS          3
+#define CS_UTF8          4
+#define CS_NOCONV       99
+
+static int     content_type;         /* internal form */
+#define TYPE_FIELD  "Content-Type"
+static struct str2init str2charset[] = {
+    {"utf-8",            CS_UTF8},
+    {"iso-2022-jp",      CS_JIS7},
+    {"euc-jp",           CS_JEUC},
+    {"xsjis",            CS_SJIS},
+    {"shift_jis",        CS_SJIS},      
+};  
+
+
+#define istoken(c) \
+        (!isspace (c) \
+            && !iscntrl (c) \
+            && !((c) & 0x80) \
+            && (c) != '(' \
+            && (c) != ')' \
+            && (c) != '<' \
+            && (c) != '>' \
+            && (c) != '@' \
+            && (c) != ',' \
+            && (c) != ';' \
+            && (c) != ':' \
+            && (c) != '\\' \
+            && (c) != '"' \
+            && (c) != '/' \
+            && (c) != '[' \
+            && (c) != ']' \
+            && (c) != '?' \
+            && (c) != '=')
+
+
+
 /*
  * A format string to be used as a command-line argument to the body
  * format filter.
@@ -941,7 +1011,9 @@ mhlfile (FILE *fp, char *mname, int ofilen, int ofilec)
 {
     int state, bucket;
     struct mcomp *c1, *c2, *c3;
-    char **ip, name[NAMESZ], buf[BUFSIZ];
+    char **ip, name[NAMESZ], buf0[BUFSIZ];
+    char *buf = buf0;
+    size_t sizeofbuf = sizeof buf0;
     m_getfld_state_t gstate = 0;
 
     compile_filterargs();
@@ -972,7 +1044,7 @@ mhlfile (FILE *fp, char *mname, int ofilen, int ofilec)
 		break;
 
 	    case ISTTY: 
-		strncpy (buf, "\n", sizeof(buf));
+		strncpy (buf, "\n", sizeofbuf);
 		if (ofilec > 1) {
 		    if (SOprintf ("Press <return> to list \"%s\"...", mname)) {
 			if (ofilen > 1)
@@ -981,7 +1053,7 @@ mhlfile (FILE *fp, char *mname, int ofilen, int ofilec)
 		    }
 		    fflush (stdout);
 		    buf[0] = 0;
-		    if (read (fileno (stdout), buf, sizeof(buf)) < 0) {
+		    if (read (fileno (stdout), buf, sizeofbuf) < 0) {
 			advise ("stdout", "read");
 		    }
 		}
@@ -1007,15 +1079,90 @@ mhlfile (FILE *fp, char *mname, int ofilen, int ofilec)
     }
 
     for (;;) {
-	int bufsz = sizeof buf;
+	int bufsz = sizeofbuf;
+        next:
 	switch (state = m_getfld (&gstate, name, buf, &bufsz, fp)) {
 	    case FLD: 
 	    case FLDPLUS: 
 	        bucket = fmt_addcomptext(name, buf);
+                /*   We had better to check Content-Type, */
+                /*   because in case of short utf-8 text, nkf mail fail to */
+                /*   correct code */
+                if (strcasecmp (name, ENCODING_FIELD)==0) {
+                    char   *cp,
+                           *dp;
+                    char    c;
+                    register struct str2init *s2i;
+
+                    cp = add (buf, 0);
+                    while (state == FLDPLUS) {
+                        state = m_getfld (&gstate, name, buf, &bufsz, fp);
+                        cp = add (buf, cp);
+                    }
+                    while (isspace (*cp))
+                        cp++;
+                    for (dp = index (cp, '\n'); dp; dp = index (dp, '\n'))
+                        *dp++ = ' ';
+                    if (*cp == '(' ) { /* comment */
+                       int i;
+                       for (i = 1;i;) {
+                           switch (*cp++) {
+                           case '(': i++; break;
+                           case ')': --i; break;
+                           case '\\': if ((*cp++) != '\0') break;
+                           case '\0': goto next;
+                           }
+                       }
+                   }
+                    for (dp = cp; istoken (*dp); dp++);
+                    c = *dp, *dp = '\0';
+                    for (s2i = str2ces; s2i -> mhnsi_key; s2i++)
+                        if (strcasecmp(cp, s2i -> mhnsi_key)==0)
+                            break;
+                    if (!s2i -> mhnsi_key && !uprf (cp, "X-"))
+                        s2i++;
+                    *dp = c;
+                    content_encoding = s2i -> mhnsi_value;
+                } else if (strcasecmp (name, TYPE_FIELD)==0) {
+                    char   *cp,
+                           *dp;
+                    char    c;
+                    register struct str2init *s2i;
+
+                    cp = add (buf, 0);
+                    while (state == FLDPLUS) {
+                        state = m_getfld (&gstate, name, buf, &bufsz, fp);
+                        cp = add (buf, cp);
+                    }
+                    while (isspace (*cp))
+                        cp++;
+                   while(cp) {
+                       cp = index (cp, 'c');
+                       if (!cp) break;
+                       if (!strncasecmp(cp,"charset",7)) {
+                           cp+=7;
+                           break;
+                       } else {
+                           cp++;
+                       }
+                   }
+                   if (!cp) continue;
+                    while (isspace (*cp)||*cp=='='||*cp=='"') cp++;
+                   
+                    for (dp = cp; istoken (*dp); dp++);
+                    c = *dp, *dp = '\0';
+                    for (s2i = str2charset; s2i -> mhnsi_key; s2i++)
+                        if (strcasecmp (cp, s2i -> mhnsi_key)==0)
+                            break;
+                    if (!s2i -> mhnsi_key && !uprf (cp, "X-"))
+                        s2i++;
+                    *dp = c;
+                    content_type = s2i -> mhnsi_value;
+                }
 		for (ip = ignores; *ip; ip++)
 		    if (!strcasecmp (name, *ip)) {
 			while (state == FLDPLUS) {
-			    bufsz = sizeof buf;
+			    bufsz = sizeofbuf;
 			    state = m_getfld (&gstate, name, buf, &bufsz, fp);
 			    fmt_appendcomp(bucket, name, buf);
 			}
@@ -1039,7 +1186,7 @@ mhlfile (FILE *fp, char *mname, int ofilen, int ofilec)
 		if (c1 == NULL)
 		    c1 = add_queue (&msghd, &msgtl, name, buf, 0);
 		while (state == FLDPLUS) {
-		    bufsz = sizeof buf;
+		    bufsz = sizeofbuf;
 		    state = m_getfld (&gstate, name, buf, &bufsz, fp);
 		    c1->c_text = add (buf, c1->c_text);
 		    fmt_appendcomp(bucket, name, buf);
@@ -1075,16 +1222,45 @@ mhlfile (FILE *fp, char *mname, int ofilen, int ofilec)
 				   !strcasecmp (c1->c_name, "body"))) {
 		    	if (c1->c_flags & FMTFILTER && state == BODY &&
 							formatproc != NULL) {
-			    filterbody(c1, buf, sizeof(buf), state, fp, gstate);
+			    filterbody(c1, buf, sizeofbuf, state, fp, gstate);
 			} else {
-			    holder.c_text = mh_xmalloc (sizeof(buf));
-			    strncpy (holder.c_text, buf, sizeof(buf));
+			    holder.c_text = mh_xmalloc (sizeofbuf);
+			    strncpy (holder.c_text, buf, sizeofbuf);
 			    while (state == BODY) {
-				putcomp (c1, &holder, BODYCOMP);
-				bufsz = sizeof buf;
-				state = m_getfld (&gstate, name, holder.c_text,
-					    &bufsz, fp);
-			    }
+                                /*
+                                 * Decode body acording to content-type and encoding
+                                 */
+                                char *cp;
+                                cp = rindex(holder.c_text, '\n');
+                                if (cp == NULL) {
+                                    cp = holder.c_text + strlen(holder.c_text);
+                                } else {
+                                    if (strlen(cp+1)>sizeofbuf) {
+                                        sizeofbuf =  strlen(cp+1) +1;
+                                        buf = (char*)alloca( sizeofbuf );
+                                    }
+                                    strcpy(buf, ++cp);
+                                    *cp = 0;
+                                    (void) ml_conv_decode(holder.c_text,content_encoding,content_type);
+                                    /* putcomp() may change the address
+                                       of holder.c_text */
+                                    putcomp(c1, &holder, BODYCOMP);
+                                    cp = copy(buf, holder.c_text);
+                                }
+                                if (cp - holder.c_text >= (long) (sizeofbuf - 1)) {
+                                    /* buffer overflow */
+                                    bufsz = sizeofbuf;
+                                    state = m_getfld(&gstate, name,
+                                                     buf, &bufsz, fp);
+                                    holder.c_text = add(buf, holder.c_text);
+                                    sizeofbuf = strlen(holder.c_text) + 1;
+                                } else {
+                                    bufsz = holder.c_text + sizeofbuf - cp,
+                                    state = m_getfld(&gstate, name, cp, &bufsz, fp);
+                                }
+                            }
+                            (void) ml_conv_decode(holder.c_text,content_encoding,content_type);
+                            putcomp (c1, &holder, BODYCOMP);
 			    free (holder.c_text);
 			    holder.c_text = NULL;
 			}

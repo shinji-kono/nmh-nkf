@@ -8,6 +8,7 @@
  */
 
 #include <h/mh.h>
+#include <h/mhparse.h>
 #include <h/addrsbr.h>
 #include <h/fmt_scan.h>
 #include <h/scansbr.h>
@@ -229,6 +230,7 @@ scan (FILE *inb, int innum, int outnum, char *nfs, int width, int curflg,
 		    bufsz = rlwidth - i;
 		    state = m_getfld (&gstate, name, tmpbuf + i, &bufsz, inb);
 		}
+                ml_conv_decode(tmpbuf,CE_UNKNOWN,0);
 
 		if (! outnum) {
 		    state = FILEEOF; /* stop now if scan cmd */
@@ -263,6 +265,7 @@ body:;
 		while (state == BODY) {
 		    bufsz = rlwidth;
 		    state = m_getfld (&gstate, name, tmpbuf, &bufsz, inb);
+                    ml_conv_decode(tmpbuf,CE_UNKNOWN,0);
 		    FPUTS(tmpbuf);
 		}
 		goto finished;

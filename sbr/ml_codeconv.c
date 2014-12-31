@@ -2,10 +2,8 @@
 /*			by takada@seraph.ntt.jp   */
 /*			arranged by MH-plus project */
 
-#ifdef JAPAN
-
-#include "../h/mh.h"
-#include "../h/mhparse.h"
+#include <h/mh.h>
+#include <h/mhparse.h>
 #include <ctype.h>
 #include <stdio.h>
 #include <sys/types.h>
@@ -39,23 +37,28 @@ ml_conv_decode(s,encode,charset)
      char *s;
      int encode,charset;
 {
-    coding_system_t coding;
-    
-    if ((s == NULL) || ((coding = CSL_FILE(ml_coding_info)) == CS_NOCONV)) 
-      return(s);
-    
-    ml_conv_sbr(s, coding, encode, charset);
+    ml_conv_sbr(s, encode, charset);
     return(s);
 }
 
+static char *
+cs_input_opt(int encode, int input_charset)
+{
+    switch(encode) {
+    case CE_BASE64: 
+        return "-dwmBW8";
+    case CE_QUOTED: 
+        return "-wmQW8";
+    }
+    return "-wW8";
+} 
 
 static void
-ml_conv_sbr(in, cs, encode, input_charset)
+ml_conv_sbr(in, encode, input_charset)
      char *in;
-     coding_system_t cs;
      int encode, input_charset;
 {
-    char *opt = cs_input_opt(cs,encode,input_charset);
+    char *opt = cs_input_opt(encode,input_charset);
     int len = strlen(in);
     nkf_open((unsigned char *)opt,(unsigned char *)in,len,(unsigned char *)in,len,extend,0);
     nkf_end();
@@ -69,11 +72,11 @@ ml_conv_sbr(in, cs, encode, input_charset)
 #undef getc
 #undef ungetc
 
-#define getc(f)   	nkf_getc(f)
-#define ungetc(c,f)	nkf_ungetc(c,f)
+#define getc(f)   	nkf_getc()
+#define ungetc(c,f)	nkf_ungetc(c)
 
 static int
-nkf_getc(FILE *f) {
+nkf_getc() {
     if (nkf_ilimit==-1) {
 	int c = nkf_input[nkf_input_ctr++];
 	if (c==0) {
@@ -85,7 +88,7 @@ nkf_getc(FILE *f) {
 }
 
 static int
-nkf_ungetc(int c,FILE *f) {
+nkf_ungetc(int c) {
     nkf_input_ctr--;
     return c;
 }
@@ -185,6 +188,5 @@ none(unsigned char *a,int b)
 
 
 
-#endif /* JAPAN */
 
 /* end */

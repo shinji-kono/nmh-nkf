@@ -176,6 +176,14 @@ struct Content {
 #define	CE_EXTENSION	0x06
 #define	CE_EXTERNAL	0x07	/* for external-body */
 
+/* coding system */
+#define CS_DEFAULT       0
+#define CS_JIS7          1
+#define CS_JEUC          2
+#define CS_SJIS          3
+#define CS_UTF8          4
+#define CS_NOCONV       99
+
 /*
  * TEXT content
  */

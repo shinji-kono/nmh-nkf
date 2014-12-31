@@ -452,3 +452,17 @@ int nmh_get_credentials (char *, char *, int, nmh_creds_t);
 int nmh_init(const char *argv0, int read_context);
 int m_unlink(const char *);
 void unregister_for_removal(int remove_files);
+
+/*
+ * General decode routine using nkf
+ *
+ * Arguments are:
+ *
+ * s		- input string (will be overriden)
+ * encode        - Content-Transfer-Encoding in mhparse.h
+ * charset       - coding system  in mhparse.h 
+ *
+ * Returns modified string actualy s itself
+ */
+char * ml_conv_decode(char *s,int encode,int charset);
+

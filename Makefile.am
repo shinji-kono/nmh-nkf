@@ -594,6 +594,7 @@ sbr_libmh_a_SOURCES = sbr/addrsbr.c sbr/ambigsw.c sbr/atooi.c sbr/arglist.c \
 		      sbr/uprf.c sbr/vfgets.c \
 		      sbr/mf.c sbr/utils.c sbr/ctype-checked.c \
 		      sbr/m_mktemp.c sbr/getansreadline.c sbr/vector.c \
+		      sbr/ml_codeconv.c \
 		      config/config.c config/version.c
 
 ##
