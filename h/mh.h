@@ -13,7 +13,7 @@
 #define ALL           ""
 #define	Nbby           8	/* number of bits/byte */
 
-#define MAXARGS	    1000	/* max arguments to exec                */
+#define MAXARGS	    4096	/* max arguments to exec                */
 #define NFOLDERS    1000	/* max folder arguments on command line */
 #define DMAXFOLDER     4	/* typical number of digits             */
 #define MAXFOLDER   1000	/* message increment                    */

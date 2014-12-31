@@ -11,6 +11,7 @@
 #include <h/tws.h>
 #include <h/picksbr.h>
 #include <h/utils.h>
+#include <h/mhparse.h>
 
 #ifdef HAVE_SYS_TIME_H
 # include <sys/time.h>
@@ -715,6 +716,9 @@ plist
 	    decode_rfc2047 (linebuf, decoded_linebuf, sizeof decoded_linebuf)) {
 	    p1 = decoded_linebuf;
 	}
+        if (body && ! lf) {
+            ml_conv_decode(p1,CE_UNKNOWN,0);
+        }
 
 	if (n->n_circf) {
 	    if (advance (p1, p2))

@@ -60,7 +60,9 @@ ml_conv_sbr(in, encode, input_charset)
 {
     char *opt = cs_input_opt(encode,input_charset);
     int len = strlen(in);
-    nkf_open((unsigned char *)opt,(unsigned char *)in,len,(unsigned char *)in,len,extend,0);
+    char *buf = alloca(len+1);
+    strcpy(buf,in);
+    nkf_open((unsigned char *)opt,(unsigned char *)buf,len,(unsigned char *)in,len,extend,0);
     nkf_end();
     nkf_output[nkf_output_ctr]=0;
 }
