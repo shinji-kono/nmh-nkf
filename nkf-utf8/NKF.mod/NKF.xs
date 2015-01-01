@@ -95,7 +95,10 @@ nkf_putchar_grow(unsigned int c)
 
 #define PERL_XS 1
 #include "../utf8tbl.c"
+#undef SP
 #include "../nkf.c"
+#undef SP
+#define SP sp /* perl's CORE/pp.h */
 
 /* package defenition  */
 
@@ -133,9 +136,6 @@ nkf(...)
     /* Get input data pointer from the last variable. */
     data = SvPV(ST(argc),i_len);
     input_ctr = 0;
-
-    if(x0201_f == WISH_TRUE)
-         x0201_f = ((!iso2022jp_f)? TRUE : NO_X0201);
 
     /* allocate the result buffer */
 
@@ -177,9 +177,6 @@ nkf_continue(...)
     /* Get input data pointer from the last variable. */
     data = SvPV(ST(0),i_len);
     input_ctr = 0;
-
-    if(x0201_f == WISH_TRUE)
-         x0201_f = ((!iso2022jp_f)? TRUE : NO_X0201);
 
     /* allocate the result buffer */
 

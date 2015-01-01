@@ -1,5 +1,5 @@
 # Copyright (c) 1987, Fujitsu LTD. (Itaru ICHIKAWA).
-# Copyright (c) 1996-2014, The nkf Project.
+# Copyright (c) 1996-2010, The nkf Project.
 # All rights reserved.
 #
 # This software is provided 'as-is', without any express or implied
@@ -47,44 +47,22 @@ bootstrap NKF $VERSION;
 __END__
 
 #
-# =begin から =begin COMMAND までは Perl/NKF のドキュメント
-# =begin COMMAND から =end までは nkf コマンドのドキュメント
 # 
 
 =head1 NAME
 
-=begin
-
-NKF - Perl extension for Network Kanji Filter
-
-=begin COMMAND
 
 nkf - Network Kanji Filter
 
-=end
 
 =head1 SYNOPSIS
 
-=begin
-
-  use NKF;
-  $output = nkf("-s",$input);
-
-=begin COMMAND
 
 nkf B<[-butjnesliohrTVvwWJESZxXFfmMBOcdILg]> B<[>I<file ...>B<]>
 
-=end
 
 =head1 DESCRIPTION
 
-=begin
-
-This is a Perl Extension version of nkf (Network Kanji Filter).
-It converts the last argument and return converted result. Conversion
-details are specified by flags before the last argument.
-
-=end
 
 B<Nkf> is a yet another kanji code converter among networks, hosts and terminals.
 It converts input kanji code to designated kanji code
@@ -98,12 +76,6 @@ By default, X0201 kana is converted into X0208 kana.
 For X0201 kana, SO/SI, SSO and ESC-(-I methods are supported.
 For automatic code detection, nkf assumes no X0201 kana in Shift_JIS.
 To accept X0201 in Shift_JIS, use B<-X>, B<-x> or B<-S>.
-
-multiple options are specifed as seprate strings, such as
-
-  print nkf('--ic=UTF8-MAC', '-w', $string), "\n";
-
-except the last arguments.
 
 =head1 OPTIONS
 
@@ -473,7 +445,6 @@ Unescape percent escaped characters.
 
 Decode character reference, such as "&#....;".
 
-=begin COMMAND
 
 =item B<--in-place[=>I<SUFFIX>B<]>  B<--overwrite[=>I<SUFFIX>B<]>
 
@@ -493,7 +464,6 @@ Print nkf's help.
 
 Print nkf's version.
 
-=end
 
 =item B<-->
 
@@ -505,14 +475,7 @@ Ignore rest of -option.
 
 Copyright (c) 1987, Fujitsu LTD. (Itaru ICHIKAWA).
 
-Copyright (c) 1996-2014, The nkf Project.
+Copyright (c) 1996-2013, The nkf Project.
 
-=begin
-
-=head1 SEE ALSO
-
-perl(1).   nkf(1)
-
-=end
 
 =cut
