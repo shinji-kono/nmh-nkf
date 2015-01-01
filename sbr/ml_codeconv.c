@@ -46,11 +46,11 @@ cs_input_opt(int encode, int input_charset)
 {
     switch(encode) {
     case CE_BASE64: 
-        return "-dwmBW8";
+        return "-dwmB";
     case CE_QUOTED: 
-        return "-wmQW8";
+        return "-wmQ";
     }
-    return "-wW8";
+    return "-w";
 } 
 
 static void
